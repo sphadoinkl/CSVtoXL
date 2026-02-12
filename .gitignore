@@ -9,15 +9,7 @@ dist/
 # Assets
 *.ico
 
-# Data
-# Wir ignorieren die großen Testdaten, behalten aber kleine Tests
-test/large_test_data.csv
-
-# User Config
-# config.json wird ignoriert, da sie nutzerspezifisch ist
-# config_template.json kann als Vorlage dienen
+# Data & Tests
+test/
 config.json
-
-# Binaries
-# .exe Dateien gehören normalerweise nicht ins Git
 *.exe
