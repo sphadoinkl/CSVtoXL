@@ -48,6 +48,14 @@ Beim ersten Start erstellt das Tool automatisch eine `config.json` im selben Ord
 - **`auto_open_explorer`**: `true` (Öffnet nach der Konvertierung den Windows-Explorer und markiert die neue Datei sofort) oder `false`.
 - **`header_cleaning`**: `true` (bereinigt Leerzeichen in Überschriften) oder `false`.
 - **`freeze_top_row`**: `true` (fixiert Kopfzeile beim Scrollen, an) oder `false`.
+- **`auto_open_file`**: `true` (öffnet die Excel-Datei sofort nach Erstellung) oder `false` (Standard).
+- **`send_email`**: `true` (versendet die Datei automatisch als E-Mail) oder `false` (Standard).
+- **`email_smtp_server`**: Der SMTP-Server deines E-Mail-Anbieters (z.B. `smtp.gmail.com`).
+- **`email_smtp_port`**: Der Port (meist `587` für TLS).
+- **`email_sender`**: Deine E-Mail-Adresse.
+- **`email_password`**: Dein Passwort (bei Gmail ein "App-Passwort" verwenden!).
+- **`email_recipient`**: An wen die Datei gesendet werden soll.
+- **`email_subject`**: Betreff der E-Mail (Platzhalter `{filename}` möglich).
 - **`output_directory`**: Gib einen festen Pfad an (z.B. `"C:\\Exporte"`) oder lass es leer für den Quellordner.
 
 ### Verfügbare Designs

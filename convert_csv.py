@@ -5,6 +5,8 @@ import subprocess
 import csv
 import ctypes
 import json
+import smtplib
+from email.message import EmailMessage
 
 # Mapping für "sprechende" Style-Namen
 STYLE_MAPPING = {
@@ -22,6 +24,14 @@ DEFAULT_CONFIG = {
     "auto_open_explorer": True,
     "header_cleaning": True,
     "freeze_top_row": True,
+    "auto_open_file": False,
+    "send_email": False,
+    "email_smtp_server": "",
+    "email_smtp_port": 587,
+    "email_sender": "",
+    "email_password": "",
+    "email_recipient": "",
+    "email_subject": "CSVtoXL Export: {filename}",
     "output_directory": ""
 }
 
@@ -50,16 +60,23 @@ def get_config():
                 updated = True
         
         if updated:
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(user_config, f, indent=4)
+            try:
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    json.dump(user_config, f, indent=4)
+            except:
+                pass
         
         return user_config
     except:
         return DEFAULT_CONFIG
 
-def show_error(message):
+def show_error(message, title="Fehler"):
     """Zeigt eine Windows-Fehlermeldung an."""
-    ctypes.windll.user32.MessageBoxW(0, message, "Fehler bei CSV-Konvertierung", 0x10)
+    ctypes.windll.user32.MessageBoxW(0, message, title, 0x10)
+
+def show_info(message, title="Information"):
+    """Zeigt eine Windows-Infomeldung an."""
+    ctypes.windll.user32.MessageBoxW(0, message, title, 0x40)
 
 def detect_delimiter(file_path, encoding):
     try:
@@ -82,6 +99,39 @@ def clean_headers(df):
     df.columns = new_columns
     return df
 
+def send_file_via_email(file_path, config):
+    """Versendet eine Datei per SMTP E-Mail."""
+    smtp_server = config.get("email_smtp_server")
+    smtp_port = config.get("email_smtp_port", 587)
+    sender = config.get("email_sender")
+    password = config.get("email_password")
+    recipient = config.get("email_recipient")
+    
+    if not all([smtp_server, sender, password, recipient]):
+        raise Exception("E-Mail Konfiguration unvollständig (Server, Sender, Passwort oder Empfänger fehlt).")
+
+    msg = EmailMessage()
+    filename = os.path.basename(file_path)
+    subject_tmpl = config.get("email_subject", "CSVtoXL Export: {filename}")
+    msg['Subject'] = subject_tmpl.format(filename=filename)
+    msg['From'] = sender
+    msg['To'] = recipient
+    msg.set_content(f"Im Anhang findest du den exportierten Excel-Bericht: {filename}\n\nGeneriert mit CSVtoXL.")
+
+    with open(file_path, 'rb') as f:
+        file_data = f.read()
+        msg.add_attachment(
+            file_data,
+            maintype='application',
+            subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            filename=filename
+        )
+
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
+        server.starttls()
+        server.login(sender, password)
+        server.send_message(msg)
+
 def main():
     if len(sys.argv) < 2:
         return
@@ -97,12 +147,13 @@ def main():
         return
 
     # Zielverzeichnis bestimmen
-    if config["output_directory"] and os.path.isdir(config["output_directory"]):
+    if config.get("output_directory") and os.path.isdir(config["output_directory"]):
         output_dir = config["output_directory"]
     else:
         output_dir = os.path.dirname(os.path.abspath(input_file))
         
-    output_file = os.path.join(output_dir, os.path.splitext(os.path.basename(input_file))[0] + '.xlsx')
+    output_basename = os.path.splitext(os.path.basename(input_file))[0]
+    output_file = os.path.join(output_dir, output_basename + '.xlsx')
     writer = None
 
     try:
@@ -161,9 +212,20 @@ def main():
         writer.close()
         writer = None
 
-        # 6. AUTOMATIK: Ordner öffnen
+        # 6. Optionaler E-Mail Versand
+        if config.get("send_email", False):
+            try:
+                send_file_via_email(output_file, config)
+            except Exception as mail_err:
+                show_error(f"Excel-Datei wurde erstellt, aber der E-Mail-Versand ist fehlgeschlagen:\n{str(mail_err)}", "E-Mail Fehler")
+
+        # 7. AUTOMATIK: Ordner öffnen
         if config.get("auto_open_explorer", True):
             subprocess.run(['explorer', '/select,', output_file])
+
+        # 8. AUTOMATIK: Datei direkt öffnen
+        if config.get("auto_open_file", False):
+            os.startfile(output_file)
 
     except Exception as e:
         show_error(f"Ein Fehler ist aufgetreten:\n{str(e)}")
