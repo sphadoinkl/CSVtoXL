@@ -1,5 +1,19 @@
 # Changelog - CSVtoXL
 
+## [1.3.1] - 2026-02-12
+
+### Behoben
+
+- **Auto-Open Fix**: Problem behoben, bei dem die `config.json` manchmal ignoriert wurde und die Excel-Datei nicht automatisch geöffnet werden konnte.
+- **Logging erweitert**: Detaillierte Ablauf-Protokollierung in `CSVtoXL.log`.
+
+## [1.3] - 2026-02-12
+
+### Hinzugefügt
+
+- **Metadaten**: Die `.exe` enthält nun professionelle Datei-Informationen (Version 1.3, Produktname, Lizenz).
+- **Fehler-Protokoll**: Bei Abstürzen oder Fehlern wird automatisch eine `CSVtoXL.log` erstellt, um die Fehlersuche zu erleichtern.
+
 ## [1.2] - 2026-02-12
 
 ### Gelöscht / Geändert
