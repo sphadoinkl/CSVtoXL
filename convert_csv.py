@@ -5,8 +5,6 @@ import subprocess
 import csv
 import ctypes
 import json
-import smtplib
-from email.message import EmailMessage
 
 # Mapping für "sprechende" Style-Namen
 STYLE_MAPPING = {
@@ -25,13 +23,7 @@ DEFAULT_CONFIG = {
     "header_cleaning": True,
     "freeze_top_row": True,
     "auto_open_file": False,
-    "send_email": False,
-    "email_smtp_server": "",
-    "email_smtp_port": 587,
-    "email_sender": "",
-    "email_password": "",
-    "email_recipient": "",
-    "email_subject": "CSVtoXL Export: {filename}",
+    "open_email_client": False,
     "output_directory": ""
 }
 
@@ -52,8 +44,15 @@ def get_config():
         with open(config_path, 'r', encoding='utf-8') as f:
             user_config = json.load(f)
         
-        # Prüfen ob Keys fehlen (Synchronisierung)
+        # Prüfen ob Keys fehlen (Synchronisierung) & Veraltete Keys entfernen
         updated = False
+        # SMTP Keys entfernen (v1.2 Cleanup)
+        obsolete_keys = ["send_email", "email_smtp_server", "email_smtp_port", "email_sender", "email_password", "email_recipient", "email_subject"]
+        for ok in obsolete_keys:
+            if ok in user_config:
+                del user_config[ok]
+                updated = True
+
         for key, value in DEFAULT_CONFIG.items():
             if key not in user_config:
                 user_config[key] = value
@@ -74,9 +73,20 @@ def show_error(message, title="Fehler"):
     """Zeigt eine Windows-Fehlermeldung an."""
     ctypes.windll.user32.MessageBoxW(0, message, title, 0x10)
 
-def show_info(message, title="Information"):
-    """Zeigt eine Windows-Infomeldung an."""
-    ctypes.windll.user32.MessageBoxW(0, message, title, 0x40)
+def trigger_default_email(file_path):
+    """Öffnet den Standard-E-Mail Client mit der Datei als Anhang (Windows native)."""
+    if not os.path.exists(file_path):
+        return
+    
+    # PowerShell Befehl, um das 'email' Verb der Shell zu nutzen (entspricht "Senden an E-Mail-Empfänger")
+    # Wir nutzen ein COM-Objekt, um die System-Aktion auszulösen
+    abs_path = os.path.abspath(file_path)
+    ps_cmd = f"$o = New-Object -ComObject Shell.Application; $o.NameSpace('{os.path.dirname(abs_path)}').ParseName('{os.path.basename(abs_path)}').InvokeVerb('email')"
+    
+    try:
+        subprocess.run(["powershell", "-Command", ps_cmd], check=True, capture_output=True)
+    except Exception as e:
+        show_error(f"E-Mail Client konnte nicht geöffnet werden:\n{str(e)}")
 
 def detect_delimiter(file_path, encoding):
     try:
@@ -98,39 +108,6 @@ def clean_headers(df):
         new_columns.append(c)
     df.columns = new_columns
     return df
-
-def send_file_via_email(file_path, config):
-    """Versendet eine Datei per SMTP E-Mail."""
-    smtp_server = config.get("email_smtp_server")
-    smtp_port = config.get("email_smtp_port", 587)
-    sender = config.get("email_sender")
-    password = config.get("email_password")
-    recipient = config.get("email_recipient")
-    
-    if not all([smtp_server, sender, password, recipient]):
-        raise Exception("E-Mail Konfiguration unvollständig (Server, Sender, Passwort oder Empfänger fehlt).")
-
-    msg = EmailMessage()
-    filename = os.path.basename(file_path)
-    subject_tmpl = config.get("email_subject", "CSVtoXL Export: {filename}")
-    msg['Subject'] = subject_tmpl.format(filename=filename)
-    msg['From'] = sender
-    msg['To'] = recipient
-    msg.set_content(f"Im Anhang findest du den exportierten Excel-Bericht: {filename}\n\nGeneriert mit CSVtoXL.")
-
-    with open(file_path, 'rb') as f:
-        file_data = f.read()
-        msg.add_attachment(
-            file_data,
-            maintype='application',
-            subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            filename=filename
-        )
-
-    with smtplib.SMTP(smtp_server, smtp_port) as server:
-        server.starttls()
-        server.login(sender, password)
-        server.send_message(msg)
 
 def main():
     if len(sys.argv) < 2:
@@ -212,12 +189,9 @@ def main():
         writer.close()
         writer = None
 
-        # 6. Optionaler E-Mail Versand
-        if config.get("send_email", False):
-            try:
-                send_file_via_email(output_file, config)
-            except Exception as mail_err:
-                show_error(f"Excel-Datei wurde erstellt, aber der E-Mail-Versand ist fehlgeschlagen:\n{str(mail_err)}", "E-Mail Fehler")
+        # 6. E-Mail Client öffnen (Optional)
+        if config.get("open_email_client", False):
+            trigger_default_email(output_file)
 
         # 7. AUTOMATIK: Ordner öffnen
         if config.get("auto_open_explorer", True):

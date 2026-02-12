@@ -1,12 +1,20 @@
 # Changelog - CSVtoXL
 
-## [1.1] - In Arbeit
+## [1.2] - 2026-02-12
+
+### Gelöscht / Geändert
+
+- **SMTP entfernt**: Der automatische E-Mail-Versand im Hintergrund wurde durch Öffnen des E-Mail-Clients ersetzt.
+
+### Hinzugefügt
+
+- **E-Mail-Client Integration**: Neue Option `open_email_client` öffnet den lokalen Mail-Client (z.B. Outlook) mit der Datei im Anhang.
+
+## [1.1] - 2026-02-12
 
 ### Hinzugefügt
 
 - Option zum direkten Öffnen der Excel-Datei nach Konvertierung (`auto_open_file`).
-- Option zum Versenden der Datei per E-Mail nach Konvertierung (`send_email`).
-- Detaillierte E-Mail-Konfiguration in `config.json` (SMTP, Empfänger, etc.).
 
 ## [1.0] - 2026-02-12
 
