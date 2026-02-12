@@ -12,6 +12,8 @@ Ein leistungsstarkes, portables Tool zur automatischen Konvertierung von CSV-Dat
 - **Auto-Styling**: Automatische Anpassung der Spaltenbreiten.
 - **Kein Konsolen-Fenster**: Saubere Ausführung im Hintergrund.
 - **Quick-Access**: Öffnet nach der Konvertierung automatisch den Ordner und markiert die neue Datei.
+- **Auto-Open**: Öffnet die erzeugte Excel-Datei auf Wunsch sofort.
+- **E-Mail-Integration**: Bereitet eine E-Mail mit der Datei im Anhang im Standard-Mail-Programm vor.
 
 ## 🚀 Benutzung
 
